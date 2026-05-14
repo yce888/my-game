@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Neon Dodge</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(circle, #0f2027, #203a43, #2c5364);
+}
+canvas {
+  display: block;
+}
+#score {
+  position: absolute;
+  color: #0ff;
+  font-size: 20px;
+  top: 10px;
+  left: 10px;
+  font-family: monospace;
+}
+</style>
+</head>
+<body>
+
+<div id="score">Score: 0</div>
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let player = {
+  x: canvas.width/2,
+  y: canvas.height - 60,
+  size: 20,
+  speed: 6
+};
+
+let keys = {};
+let enemies = [];
+let particles = [];
+let score = 0;
+let speed = 2;
+
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+function spawnEnemy() {
+  enemies.push({
+    x: Math.random() * canvas.width,
+    y: -20,
+    size: 15 + Math.random()*10
+  });
+}
+
+function drawPlayer() {
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = "#0ff";
+  ctx.fillStyle = "#0ff";
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+  ctx.shadowBlur = 0;
+}
+
+function drawEnemies() {
+  ctx.fillStyle = "#f0f";
+  enemies.forEach(e => {
+    ctx.fillRect(e.x, e.y, e.size, e.size);
+  });
+}
+
+function updateEnemies() {
+  enemies.forEach(e => {
+    e.y += speed;
+  });
+  enemies = enemies.filter(e => e.y < canvas.height);
+}
+
+function collision(a, b) {
+  return a.x < b.x + b.size &&
+         a.x + a.size > b.x &&
+         a.y < b.y + b.size &&
+         a.y + a.size > b.y;
+}
+
+function explode(x, y) {
+  for(let i=0;i<20;i++){
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*5,
+      vy: (Math.random()-0.5)*5,
+      life: 30
+    });
+  }
+}
+
+function updateParticles() {
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function drawParticles() {
+  ctx.fillStyle = "#fff";
+  particles.forEach(p => {
+    ctx.fillRect(p.x, p.y, 2, 2);
+  });
+}
+
+function gameLoop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if (keys["a"] || keys["arrowleft"]) player.x -= player.speed;
+  if (keys["d"] || keys["arrowright"]) player.x += player.speed;
+
+  player.x = Math.max(0, Math.min(canvas.width-player.size, player.x));
+
+  if (Math.random() < 0.03) spawnEnemy();
+
+  updateEnemies();
+  drawEnemies();
+  drawPlayer();
+
+  enemies.forEach(e => {
+    if (collision(player, e)) {
+      explode(player.x, player.y);
+      alert("游戏结束！得分：" + score);
+      document.location.reload();
+    }
+  });
+
+  updateParticles();
+  drawParticles();
+
+  score++;
+  speed += 0.001;
+
+  document.getElementById("score").innerText = "Score: " + score;
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
